@@ -1,22 +1,14 @@
 package main.java;
 
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.image.Image;
 
 public class Gem {
 
-    public static final int gemPixelLength = 50;
-
     private int row;
     private int col;
-    private int type;
+    private GemType type;
 
-    public Gem(int row, int col) {
-        this.row = row;
-        this.col = col;
-    }
-
-    public Gem(int row, int col, int type) {
+    public Gem(int row, int col, GemType type) {
         this.row = row;
         this.col = col;
         this.type = type;
@@ -30,11 +22,13 @@ public class Gem {
         return col;
     }
 
-    public int getType() {
+    public GemType getType() {
         return type;
     }
 
-    public void draw(GraphicsContext gc, Image image) {
-        gc.drawImage(image, row * gemPixelLength, col * gemPixelLength);
+    public void draw(GraphicsContext gc) {
+        int x = row * Constants.GEM_PIXEL_LENGTH;
+        int y = col * Constants.GEM_PIXEL_LENGTH;
+        gc.drawImage(GemType.getImage(type), x, y);
     }
 }
