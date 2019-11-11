@@ -26,9 +26,19 @@ public class Gem {
         return type;
     }
 
+    public void setType(GemType type) {
+        this.type = type;
+    }
+
     public void draw(GraphicsContext gc) {
-        int x = row * Constants.GEM_PIXEL_LENGTH;
-        int y = col * Constants.GEM_PIXEL_LENGTH;
+        int x = col * Constants.GEM_PIXEL_LENGTH;
+        int y = row * Constants.GEM_PIXEL_LENGTH;
         gc.drawImage(GemType.getImage(type), x, y);
+    }
+
+    public void removeGem(GraphicsContext gc) {
+        int x = col * Constants.GEM_PIXEL_LENGTH;
+        int y = row * Constants.GEM_PIXEL_LENGTH;
+        gc.clearRect(x, y, Constants.GEM_PIXEL_LENGTH, Constants.GEM_PIXEL_LENGTH);
     }
 }

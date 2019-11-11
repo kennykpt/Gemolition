@@ -46,7 +46,7 @@ public enum GemType {
         String root = "main/resources/";
         String extension = ".png";
 
-        gemTypeImage = new EnumMap<GemType, Image>(GemType.class);
+        gemTypeImage = new EnumMap<>(GemType.class);
         for (GemType type : values()) {
             String path = root + type.getColor() + extension;
             URL url = ClassLoader.getSystemClassLoader().getResource(path);
