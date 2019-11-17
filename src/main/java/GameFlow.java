@@ -3,11 +3,11 @@ package main.java;
 import javafx.scene.canvas.GraphicsContext;
 
 // Use later for other features
-public class GameElements {
+public class GameFlow {
 
     private Board board;
 
-    public GameElements() {
+    public GameFlow() {
         board = new Board(Constants.BOARD_WIDTH, Constants.BOARD_HEIGHT);
     }
 

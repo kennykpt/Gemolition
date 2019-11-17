@@ -2,18 +2,20 @@ package main.java;
 
 import javafx.scene.canvas.GraphicsContext;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Board {
 
     private Gem[][] gems;
     private List<Gem> gemsToSwap = new ArrayList<>();
     private Gem selectedGem = null;
+    private EnumMap<GemType, Set<GemGroup>> gemTypeToGroup = new EnumMap<>(GemType.class);
 
     public Board(int boardWidth, int boardHeight) {
         gems = new Gem[boardWidth][boardHeight];
         populateBoard();
+        buildGemTypeToGroupMap();
     }
 
     // Populates the board by placing gems from left to right, top to bottom
@@ -45,6 +47,11 @@ public class Board {
         }
     }
 
+    public void buildGemTypeToGroupMap() {
+        for (GemType gemType : GemType.values())
+            gemTypeToGroup.put(gemType, new HashSet<>());
+    }
+
     public void draw(GraphicsContext gc) {
         for (int i = 0; i < gems.length; i++)
             for (int j = 0; j < gems[0].length; j++)
@@ -59,6 +66,7 @@ public class Board {
     }
 
     // General swap algorithm for GemType, does not depend on neighbors
+    // Eventually animate so that the rows and cols need switching too
     public void swap(Gem gem, Gem otherGem) {
         GemType tempType = gems[gem.getRow()][gem.getCol()].getType();
         gems[gem.getRow()][gem.getCol()].setType(otherGem.getType());
@@ -73,7 +81,7 @@ public class Board {
         return false;
     }
 
-    public void clickBoard(int row, int col) {
+    public void mouseClicked(int row, int col) {
         if (selectedGem == null)
             selectedGem = gems[row][col];
         else {
@@ -89,6 +97,106 @@ public class Board {
                 selectedGem = null;
             }
         }
+    }
+
+    public void clearMatchedGems() {
+        for (GemGroup gemGroup : getAllGroups()) {
+            for (int j = 0; j < gems[0].length; j++) {
+                int maxRowIndex = gemGroup.getMaxRowIndex(j);
+                int totalGemsCleared = gemGroup.getNumberGemsCleared(j);
+                updateColumn(maxRowIndex, j, totalGemsCleared);
+            }
+        }
+    }
+
+    // maxRowIndex is index of bottom-most cleared gem in column col
+    // totalGemsCleared in column col
+    public void updateColumn(int maxRowIndex, int col, int totalGemsCleared) {
+        int numGemsMoved = 0;
+        for (int i = maxRowIndex; i >= 0; i--) {
+            if (gems[i][col].isInGroup()) {
+                gems[i][col].setInGroup(false);
+                gems[maxRowIndex - numGemsMoved][col] = gems[i][col];
+                numGemsMoved++;
+            }
+        }
+        for (int i = maxRowIndex - totalGemsCleared; i >= 0; i--)
+            gems[i][col] = new Gem(i, col, GemType.getRandomType());
+    }
+
+    public Set<GemGroup> getAllGroups() {
+        return gemTypeToGroup.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+    }
+
+    // Don't have to do this for every gem
+    public void formGemGroups() {
+        for (int i = 0; i < gems.length; i++) {
+            for (int j = 0; j < gems[0].length; j++) {
+                Gem gem = gems[i][j];
+
+                // Optimization: any neighboring gems part of a prior match are already in gemTypeToGroup
+                if (!gem.isInGroup()) {
+                    GemGroup candidateGemGroup = createNeighboringMatch(gem);
+                    Set<GemGroup> gemGroups = gemTypeToGroup.get(candidateGemGroup.getGemType());
+                    addGemGroup(candidateGemGroup, gemGroups);  // does this already add to the map?
+                }
+            }
+        }
+    }
+
+    // Should this be void?
+    public void addGemGroup(GemGroup gemGroup, Set<GemGroup> gemGroups) {
+        for (Iterator<GemGroup> it = gemGroups.iterator(); it.hasNext(); ) {
+            GemGroup existingGemGroup = it.next();
+
+            // Create temporary gem storage for set intersections
+            Set<Gem> tempGems = new HashSet<>(gemGroup.getGems());
+            tempGems.retainAll(existingGemGroup.getGems());  // does this work?
+            if (!tempGems.isEmpty()) {
+                it.remove();
+
+                gemGroup.getGems().addAll(existingGemGroup.getGems());
+                gemGroups.add(gemGroup);
+            }
+        }
+    }
+
+    public GemGroup createNeighboringMatch(Gem gem) {
+        int row = gem.getRow();
+        int col = gem.getCol();
+        GemType type = gem.getType();
+
+        Set<Gem> gemsToFormGroup = new HashSet<>();
+
+        // Check for column match
+        for (int i = row - 2; i <= row + 2; i++) {
+            if (gemsToFormGroup.size() < 2) {
+                Gem currentGem = gems[i][col];
+                if (currentGem.getType() == type)
+                    gemsToFormGroup.add(currentGem);
+                else
+                    gemsToFormGroup.clear();
+            }
+        }
+
+        // Check for row match
+        for (int j = col - 2; j <= col + 2; j++) {
+            if (gemsToFormGroup.size() < 2) {
+                Gem currentGem = gems[row][j];
+                if (currentGem.getType() == type)
+                    gemsToFormGroup.add(currentGem);
+                else
+                    gemsToFormGroup.clear();
+            }
+        }
+
+        // If count is ever 2, then setInGroup = true
+        if (gemsToFormGroup.size() == 2)
+            for (Gem gemInGroup : gemsToFormGroup)
+                gemInGroup.setInGroup(true);
+
+        // Can be empty
+        return new GemGroup(gemsToFormGroup);
     }
 
     public static boolean isInsideBoard(int row, int col) {

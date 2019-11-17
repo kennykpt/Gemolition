@@ -21,7 +21,7 @@ public class GemolitionApp extends Application {
         Canvas canvas = new Canvas(widthInPixels, heightInPixels);
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
-        GameElements gameElements = new GameElements();
+        GameFlow gameElements = new GameFlow();
         gameElements.draw(gc);
 
         Group group = new Group();
@@ -32,7 +32,7 @@ public class GemolitionApp extends Application {
             int col = (int) e.getX() / Constants.GEM_PIXEL_LENGTH;
             if (Board.isInsideBoard(row, col)) {
                 Board board = gameElements.getBoard();
-                board.clickBoard(row, col);
+                board.mouseClicked(row, col);
                 board.drawSwap(gc);
             }
         });

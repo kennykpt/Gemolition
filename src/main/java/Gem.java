@@ -7,6 +7,7 @@ public class Gem {
     private int row;
     private int col;
     private GemType type;
+    private boolean inGroup = false;
 
     public Gem(int row, int col, GemType type) {
         this.row = row;
@@ -28,6 +29,14 @@ public class Gem {
 
     public void setType(GemType type) {
         this.type = type;
+    }
+
+    public boolean isInGroup() {
+        return inGroup;
+    }
+
+    public void setInGroup(boolean inGroup) {
+        this.inGroup = inGroup;
     }
 
     public void draw(GraphicsContext gc) {
