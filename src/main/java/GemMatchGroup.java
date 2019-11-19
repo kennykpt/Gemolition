@@ -2,12 +2,12 @@ package main.java;
 
 import java.util.Set;
 
-public class GemGroup {
+public class GemMatchGroup {
 
     private Set<Gem> gems;
     private GemType gemType;
 
-    public GemGroup(Set<Gem> gems) {
+    public GemMatchGroup(Set<Gem> gems) {
         this.gems = gems;
         gemType = gems.iterator().next().getType();
     }

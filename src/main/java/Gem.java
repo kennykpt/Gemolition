@@ -6,13 +6,18 @@ public class Gem {
 
     private int row;
     private int col;
+    private int beforeSwapX;
+    private int beforeSwapY;
     private GemType type;
     private boolean inGroup = false;
+    private boolean animating = false;
 
     public Gem(int row, int col, GemType type) {
         this.row = row;
         this.col = col;
         this.type = type;
+        beforeSwapX = getX();
+        beforeSwapY = getY();
     }
 
     public int getRow() {
@@ -23,12 +28,42 @@ public class Gem {
         return col;
     }
 
-    public GemType getType() {
-        return type;
+    public void setRowAndCol(int row, int col) {
+        this.row = row;
+        this.col = col;
     }
 
-    public void setType(GemType type) {
-        this.type = type;
+    public int getX() {
+        return col * Constants.GEM_PIXEL_LENGTH;
+    }
+
+    public int getY() {
+        return row * Constants.GEM_PIXEL_LENGTH;
+    }
+
+    public int getBeforeSwapX() {
+        return beforeSwapX;
+    }
+
+    public void setBeforeSwapX(int beforeSwapX) {
+        this.beforeSwapX = beforeSwapX;
+    }
+
+    public int getBeforeSwapY() {
+        return beforeSwapY;
+    }
+
+    public void setBeforeSwapY(int beforeSwapY) {
+        this.beforeSwapY = beforeSwapY;
+    }
+
+    public void setBeforeSwapXAndY() {
+        this.beforeSwapX = getX();
+        this.beforeSwapY = getY();
+    }
+
+    public GemType getType() {
+        return type;
     }
 
     public boolean isInGroup() {
@@ -39,15 +74,19 @@ public class Gem {
         this.inGroup = inGroup;
     }
 
+    public boolean isAnimating() {
+        return animating;
+    }
+
+    public void setAnimating(boolean animating) {
+        this.animating = animating;
+    }
+
     public void draw(GraphicsContext gc) {
-        int x = col * Constants.GEM_PIXEL_LENGTH;
-        int y = row * Constants.GEM_PIXEL_LENGTH;
-        gc.drawImage(GemType.getImage(type), x, y);
+        gc.drawImage(GemType.getImage(type), getBeforeSwapX(), getBeforeSwapY());
     }
 
     public void removeGem(GraphicsContext gc) {
-        int x = col * Constants.GEM_PIXEL_LENGTH;
-        int y = row * Constants.GEM_PIXEL_LENGTH;
-        gc.clearRect(x, y, Constants.GEM_PIXEL_LENGTH, Constants.GEM_PIXEL_LENGTH);
+        gc.clearRect(getX(), getY(), Constants.GEM_PIXEL_LENGTH, Constants.GEM_PIXEL_LENGTH);
     }
 }
