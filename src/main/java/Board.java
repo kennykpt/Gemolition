@@ -35,7 +35,9 @@ public class Board {
         selectedGem2 = null;
     }
 
-    // Populates the board by placing gems from left to right, top to bottom
+    /**
+     * Populates the board by placing gems from left to right, and then top to bottom
+     */
     public void populateBoard() {
         for (int i = 0; i < gems.length; i++) {
             for (int j = 0; j < gems[0].length; j++) {
@@ -138,24 +140,25 @@ public class Board {
     }
 
     /**
-     * Logic for clearing the gems
+     * Animates descending gems above the gems that are matched and cleared
      */
     public void clearMatchedGems() {
         for (GemMatchGroup gemMatchGroup : getAllMatchGroups()) {
+            int smallestRow = gemMatchGroup.getOrderedGems().iterator().next().getRow();
             for (Gem gem : gemMatchGroup.getOrderedGems()) {
                 int row = gem.getRow();
                 int col = gem.getCol();
+                int nNewGems = row - smallestRow + 1;
 
                 for (int i = row; i > 0; i--) {
                     Gem gemAbove = gems[i - 1][col];
-                    if (!gemAbove.isInMatchGroup()) {
-                        gemAbove.setAnimating(true);
+                    if (!gemAbove.isInMatchGroup() && !gemAbove.isAnimating())
                         gemAbove.setBeforeSwapXAndY();
-                        gems[i][col] = gemAbove;
-                        gemAbove.setRowAndCol(i, col);
-                    }
+                    gemAbove.setAnimating(true);
+                    gems[i][col] = gemAbove;
+                    gemAbove.setRowAndCol(i, col);
                 }
-                Gem replacementGem = new Gem(-1, col, GemType.getRandomType());
+                Gem replacementGem = new Gem(-nNewGems, col, GemType.getRandomType());
                 replacementGem.setAnimating(true);
                 replacementGem.setBeforeSwapXAndY();
                 gems[0][col] = replacementGem;
@@ -203,7 +206,8 @@ public class Board {
                     gemMatchGroups.add(gemMatchGroup);
                 }
             }
-        } else
+        }
+        else
             gemMatchGroups.add(gemMatchGroup);
     }
 

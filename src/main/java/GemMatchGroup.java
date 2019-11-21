@@ -23,7 +23,7 @@ public class GemMatchGroup {
     }
 
     /**
-     * Order the gems in ascending row values, then column values
+     * Order the gems by ascending row values, then by ascending column values
      */
     public TreeSet<Gem> getOrderedGems() {
         TreeSet<Gem> gems = new TreeSet<>((gem, otherGem) -> {

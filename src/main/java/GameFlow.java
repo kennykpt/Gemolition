@@ -27,6 +27,9 @@ public class GameFlow {
         board.draw(gc);
     }
 
+    /**
+     * Handles mouse presses whenever gems are not animating
+     */
     public void mousePressed(int row, int col) {
         if (!animating && board.mousePressed(row, col)) {
             animating = true;
@@ -35,7 +38,8 @@ public class GameFlow {
     }
 
     public void animate() {
-        animation = new Timeline(new KeyFrame(Duration.millis(5), e -> {
+        animation = new Timeline(new KeyFrame(Duration.millis(2), e -> {
+            // Collects all gems that participate in the animation
             Set<Gem> gems = Arrays.stream(board.getGems())
                     .flatMap(Arrays::stream)
                     .filter(Gem::isAnimating)
@@ -76,7 +80,7 @@ public class GameFlow {
             board.clearMatchedGems();
             animate();
         } else {
-            // If gemMatchGroups is empty and no prior match animations were played, then swap the gems back
+            // If gemMatchGroups is empty and no matches were previously animated, then swap the gems back
             if (!matchFlag)
                 board.swap(board.getSelectedGem(), board.getSelectedGem2());
             animating = false;

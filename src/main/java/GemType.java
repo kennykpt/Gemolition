@@ -16,9 +16,7 @@ public enum GemType {
     PURPLE("Purple_Gem");
 
     private static Random rand = new Random();
-
     private static EnumMap<GemType, Image> gemTypeImage;
-
     private final String color;
 
     GemType(final String color) {
@@ -42,6 +40,9 @@ public enum GemType {
         return gemTypeImage.get(gemType);
     }
 
+    /**
+     * Initializes a mapping from GemType to Image
+     */
     public static void init() {
         String root = "main/resources/";
         String extension = ".png";
