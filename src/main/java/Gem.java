@@ -89,4 +89,15 @@ public class Gem {
     public void removeGem(GraphicsContext gc) {
         gc.clearRect(getX(), getY(), Constants.GEM_PIXEL_LENGTH, Constants.GEM_PIXEL_LENGTH);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null || this.getClass() != obj.getClass())
+            return false;
+
+        Gem gem = (Gem) obj;
+        return this.getRow() == gem.getRow()
+                && this.getCol() == gem.getCol()
+                && this.getType() == gem.getType();
+    }
 }
