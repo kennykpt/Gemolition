@@ -9,7 +9,7 @@ public class Gem {
     private int beforeSwapX;
     private int beforeSwapY;
     private GemType type;
-    private boolean inGroup = false;
+    private boolean inMatchGroup = false;
     private boolean animating = false;
 
     public Gem(int row, int col, GemType type) {
@@ -66,12 +66,12 @@ public class Gem {
         return type;
     }
 
-    public boolean isInGroup() {
-        return inGroup;
+    public boolean isInMatchGroup() {
+        return inMatchGroup;
     }
 
-    public void setInGroup(boolean inGroup) {
-        this.inGroup = inGroup;
+    public void setInMatchGroup(boolean inMatchGroup) {
+        this.inMatchGroup = inMatchGroup;
     }
 
     public boolean isAnimating() {

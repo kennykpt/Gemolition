@@ -10,7 +10,7 @@ public class Board {
     private Gem[][] gems;
     private Gem selectedGem = null;
     private Gem selectedGem2 = null;
-    private EnumMap<GemType, Set<GemMatchGroup>> gemTypeToGroup = new EnumMap<>(GemType.class);
+    private EnumMap<GemType, Set<GemMatchGroup>> gemTypeToMatchGroup = new EnumMap<>(GemType.class);
 
     public Board(int boardWidth, int boardHeight) {
         gems = new Gem[boardWidth][boardHeight];
@@ -64,26 +64,43 @@ public class Board {
         }
     }
 
-    public void buildGemTypeToGroupMap() {
-        for (GemType gemType : GemType.values())
-            gemTypeToGroup.put(gemType, new HashSet<>());
-    }
-
     public void draw(GraphicsContext gc) {
         Arrays.stream(gems)
                 .flatMap(Arrays::stream)
                 .forEach(gem -> gem.draw(gc));
     }
 
+    public void buildGemTypeToGroupMap() {
+        for (GemType gemType : GemType.values())
+            gemTypeToMatchGroup.put(gemType, new HashSet<>());
+    }
+
+    public void resetGemTypeToGroupMap() {
+        for (GemType gemType : GemType.values())
+            gemTypeToMatchGroup.get(gemType).clear();
+    }
+
+    public Set<GemMatchGroup> getAllMatchGroups() {
+        return gemTypeToMatchGroup.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+    }
+
     /**
-     * Make sure row and col are set for each gem for animation
+     * The row and col for each gem in the swap must be set for animation.
+     * The two gems have to both swap on the physical board, along with the corresponding row, col values.
      */
     public void swap(Gem gem, Gem otherGem) {
+        // Set up the animation step using starting animation state
+        gem.setAnimating(true);
         gem.setBeforeSwapXAndY();
+        otherGem.setAnimating(true);
         otherGem.setBeforeSwapXAndY();
 
+        // Keeps track of the final animation state, which is the swap result
         int tempRow = gem.getRow();
         int tempCol = gem.getCol();
+        Gem tempGem = gems[tempRow][tempCol];
+        gems[gem.getRow()][gem.getCol()] = gems[otherGem.getRow()][otherGem.getCol()];
+        gems[otherGem.getRow()][otherGem.getCol()] = tempGem;
         gem.setRowAndCol(otherGem.getRow(), otherGem.getCol());
         otherGem.setRowAndCol(tempRow, tempCol);
     }
@@ -114,76 +131,85 @@ public class Board {
                 selectedGem = gems[row][col];
                 return false;
             } else {
-                selectedGem.setAnimating(true);
-                selectedGem2.setAnimating(true);
                 swap(selectedGem, selectedGem2);
                 return true;
             }
         }
     }
 
+    /**
+     * Logic for clearing the gems
+     */
     public void clearMatchedGems() {
-        for (GemMatchGroup gemMatchGroup : getAllGroups()) {
-            for (int j = 0; j < gems[0].length; j++) {
-                int maxRowIndex = gemMatchGroup.getMaxRowIndex(j);
-                int totalGemsCleared = gemMatchGroup.getNumberGemsCleared(j);
-                updateColumn(maxRowIndex, j, totalGemsCleared);
+        for (GemMatchGroup gemMatchGroup : getAllMatchGroups()) {
+            for (Gem gem : gemMatchGroup.getOrderedGems()) {
+                int row = gem.getRow();
+                int col = gem.getCol();
+
+                for (int i = row; i > 0; i--) {
+                    Gem gemAbove = gems[i - 1][col];
+                    if (!gemAbove.isInMatchGroup()) {
+                        gemAbove.setAnimating(true);
+                        gemAbove.setBeforeSwapXAndY();
+                        gems[i][col] = gemAbove;
+                        gemAbove.setRowAndCol(i, col);
+                    }
+                }
+                Gem replacementGem = new Gem(-1, col, GemType.getRandomType());
+                replacementGem.setAnimating(true);
+                replacementGem.setBeforeSwapXAndY();
+                gems[0][col] = replacementGem;
+                replacementGem.setRowAndCol(0, col);
             }
         }
-    }
-
-    // maxRowIndex is index of bottom-most cleared gem in column col
-    // totalGemsCleared in column col
-    public void updateColumn(int maxRowIndex, int col, int totalGemsCleared) {
-        int numGemsMoved = 0;
-        for (int i = maxRowIndex; i >= 0; i--) {
-            if (gems[i][col].isInGroup()) {
-                gems[i][col].setInGroup(false);
-                gems[maxRowIndex - numGemsMoved][col] = gems[i][col];
-                numGemsMoved++;
-            }
-        }
-        for (int i = maxRowIndex - totalGemsCleared; i >= 0; i--)
-            gems[i][col] = new Gem(i, col, GemType.getRandomType());
-    }
-
-    public Set<GemMatchGroup> getAllGroups() {
-        return gemTypeToGroup.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
     }
 
     // Don't have to do this for every gem
     public void formGemGroups() {
+        resetGemTypeToGroupMap();
         for (int i = 0; i < gems.length; i++) {
             for (int j = 0; j < gems[0].length; j++) {
                 Gem gem = gems[i][j];
 
                 // Optimization: any neighboring gems part of a prior match are already in gemTypeToGroup
-                if (!gem.isInGroup()) {
+                if (!gem.isInMatchGroup()) {
                     GemMatchGroup candidateGemMatchGroup = createNeighboringMatch(gem);
-                    Set<GemMatchGroup> gemMatchGroups = gemTypeToGroup.get(candidateGemMatchGroup.getGemType());
-                    addGemGroup(candidateGemMatchGroup, gemMatchGroups);  // does this already add to the map?
+                    if (!candidateGemMatchGroup.getGems().isEmpty()) {
+                        Set<GemMatchGroup> gemMatchGroups = gemTypeToMatchGroup.get(candidateGemMatchGroup.getGemType());
+                        addGemMatchGroup(candidateGemMatchGroup, gemMatchGroups);
+                    }
                 }
             }
         }
     }
 
-    // Should this be void?
-    public void addGemGroup(GemMatchGroup gemMatchGroup, Set<GemMatchGroup> gemMatchGroups) {
-        for (Iterator<GemMatchGroup> it = gemMatchGroups.iterator(); it.hasNext(); ) {
-            GemMatchGroup existingGemMatchGroup = it.next();
+    /**
+     * Add the current match group to the set if the latter is empty.
+     * Otherwise, loop through the existing match groups in the set. If the current match group shares any gems in
+     * common with any of the existing ones, then make a larger match group.
+     */
+    public void addGemMatchGroup(GemMatchGroup gemMatchGroup, Set<GemMatchGroup> gemMatchGroups) {
+        if (!gemMatchGroups.isEmpty()) {
+            for (Iterator<GemMatchGroup> it = gemMatchGroups.iterator(); it.hasNext(); ) {
+                GemMatchGroup existingGemMatchGroup = it.next();
 
-            // Create temporary gem storage for set intersections
-            Set<Gem> tempGems = new HashSet<>(gemMatchGroup.getGems());
-            tempGems.retainAll(existingGemMatchGroup.getGems());  // does this work?
-            if (!tempGems.isEmpty()) {
-                it.remove();
+                // Create temporary gem storage for set intersections
+                Set<Gem> tempGems = new HashSet<>(gemMatchGroup.getGems());
+                tempGems.retainAll(existingGemMatchGroup.getGems());  // does this work?
+                if (!tempGems.isEmpty()) {
+                    it.remove();
 
-                gemMatchGroup.getGems().addAll(existingGemMatchGroup.getGems());
-                gemMatchGroups.add(gemMatchGroup);
+                    gemMatchGroup.getGems().addAll(existingGemMatchGroup.getGems());
+                    gemMatchGroups.add(gemMatchGroup);
+                }
             }
-        }
+        } else
+            gemMatchGroups.add(gemMatchGroup);
     }
 
+    /**
+     * Focus on a single gem and check whether it participates in a match group.
+     */
     public GemMatchGroup createNeighboringMatch(Gem gem) {
         int row = gem.getRow();
         int col = gem.getCol();
@@ -193,7 +219,7 @@ public class Board {
 
         // Check for column match
         for (int i = row - 2; i <= row + 2; i++) {
-            if (gemsToFormMatchGroup.size() < 2) {
+            if (gemsToFormMatchGroup.size() < 3 && GameFlow.isInsideBoard(i, col)) {
                 Gem currentGem = gems[i][col];
                 if (currentGem.getType() == type)
                     gemsToFormMatchGroup.add(currentGem);
@@ -203,20 +229,25 @@ public class Board {
         }
 
         // Check for row match
-        for (int j = col - 2; j <= col + 2; j++) {
-            if (gemsToFormMatchGroup.size() < 2) {
-                Gem currentGem = gems[row][j];
-                if (currentGem.getType() == type)
-                    gemsToFormMatchGroup.add(currentGem);
-                else
-                    gemsToFormMatchGroup.clear();
+        if (gemsToFormMatchGroup.size() < 3) {
+            gemsToFormMatchGroup.clear();
+            for (int j = col - 2; j <= col + 2; j++) {
+                if (gemsToFormMatchGroup.size() < 3 && GameFlow.isInsideBoard(row, j)) {
+                    Gem currentGem = gems[row][j];
+                    if (currentGem.getType() == type)
+                        gemsToFormMatchGroup.add(currentGem);
+                    else
+                        gemsToFormMatchGroup.clear();
+                }
             }
         }
 
-        // If count is ever 2, then setInGroup = true
-        if (gemsToFormMatchGroup.size() == 2)
+        // If count is ever 3, then setInGroup = true
+        if (gemsToFormMatchGroup.size() == 3)
             for (Gem gemInMatchGroup : gemsToFormMatchGroup)
-                gemInMatchGroup.setInGroup(true);
+                gemInMatchGroup.setInMatchGroup(true);
+        else
+            gemsToFormMatchGroup.clear();
 
         // Can be empty
         return new GemMatchGroup(gemsToFormMatchGroup);

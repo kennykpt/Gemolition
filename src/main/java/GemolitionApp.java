@@ -24,7 +24,7 @@ public class GemolitionApp extends Application {
         Canvas canvas = new Canvas(widthInPixels, heightInPixels);
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
-        GameFlow gameFlow = new GameFlow();
+        gameFlow = new GameFlow();
         gameFlow.draw(gc);
 
         Group group = new Group();

@@ -17,13 +17,10 @@ public class GameFlow {
     private Board board;
     private Animation animation;
     private boolean animating = false;
+    private boolean matchFlag = false;
 
     public GameFlow() {
         board = new Board(Constants.BOARD_WIDTH, Constants.BOARD_HEIGHT);
-    }
-
-    public Board getBoard() {
-        return board;
     }
 
     public void draw(GraphicsContext gc) {
@@ -44,16 +41,17 @@ public class GameFlow {
                     .filter(Gem::isAnimating)
                     .collect(Collectors.toSet());
 
+            int delta = Constants.ANIMATION_PIXEL_CHANGE;
             for (Iterator<Gem> it = gems.iterator(); it.hasNext(); ) {
                 Gem gem = it.next();
                 if (gem.getBeforeSwapX() < gem.getX())
-                    gem.setBeforeSwapX(gem.getBeforeSwapX() + 1);
+                    gem.setBeforeSwapX(gem.getBeforeSwapX() + delta);
                 else if (gem.getBeforeSwapX() > gem.getX())
-                    gem.setBeforeSwapX(gem.getBeforeSwapX() - 1);
+                    gem.setBeforeSwapX(gem.getBeforeSwapX() - delta);
                 else if (gem.getBeforeSwapY() < gem.getY())
-                    gem.setBeforeSwapY(gem.getBeforeSwapY() + 1);
+                    gem.setBeforeSwapY(gem.getBeforeSwapY() + delta);
                 else if (gem.getBeforeSwapY() > gem.getY())
-                    gem.setBeforeSwapY(gem.getBeforeSwapY() - 1);
+                    gem.setBeforeSwapY(gem.getBeforeSwapY() - delta);
                 else {
                     gem.setAnimating(false);
                     it.remove();
@@ -63,23 +61,33 @@ public class GameFlow {
             if (gems.isEmpty()) {
                 animation.stop();
                 if (animating)
-                    handleMatches();
+                    handleMatchGroups();
             }
         }));
         animation.setCycleCount(Animation.INDEFINITE);
         animation.play();
     }
 
-    public void handleMatches() {
-        animating = false;
-        board.getSelectedGem().setAnimating(true);
-        board.getSelectedGem2().setAnimating(true);
-        board.swap(board.getSelectedGem(), board.getSelectedGem2());
-        animate();
-        board.resetSelectedGems();
+    public void handleMatchGroups() {
+        board.formGemGroups();
+        Set<GemMatchGroup> gemMatchGroups = board.getAllMatchGroups();
+        if (!gemMatchGroups.isEmpty()) {
+            matchFlag = true;
+            board.clearMatchedGems();
+            animate();
+        } else {
+            // If gemMatchGroups is empty and no prior match animations were played, then swap the gems back
+            if (!matchFlag)
+                board.swap(board.getSelectedGem(), board.getSelectedGem2());
+            animating = false;
+            animate();  // Since animating is false, handleMatchGroups() won't be triggered again
+
+            matchFlag = false;
+            board.resetSelectedGems();
+        }
     }
 
     public static boolean isInsideBoard(int row, int col) {
-        return row >= 0 && row <= Constants.BOARD_HEIGHT && col >= 0 && col <= Constants.BOARD_WIDTH;
+        return row >= 0 && row < Constants.BOARD_HEIGHT && col >= 0 && col < Constants.BOARD_WIDTH;
     }
 }

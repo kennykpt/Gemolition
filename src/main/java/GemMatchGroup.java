@@ -1,6 +1,7 @@
 package main.java;
 
 import java.util.Set;
+import java.util.TreeSet;
 
 public class GemMatchGroup {
 
@@ -9,7 +10,8 @@ public class GemMatchGroup {
 
     public GemMatchGroup(Set<Gem> gems) {
         this.gems = gems;
-        gemType = gems.iterator().next().getType();
+        if (!gems.isEmpty())
+            gemType = gems.iterator().next().getType();
     }
 
     public Set<Gem> getGems() {
@@ -20,21 +22,16 @@ public class GemMatchGroup {
         return gemType;
     }
 
-    public int getMaxRowIndex(int col) {
-        int maxRowIndex = -1;
-        for (Gem gem : gems)
-            if (gem.getCol() == col)
-                maxRowIndex = Math.max(maxRowIndex, gem.getRow());
-
-        return maxRowIndex;
-    }
-
-    public int getNumberGemsCleared(int col) {
-        int numGemsCleared = 0;
-        for (Gem gem : gems)
-            if (gem.getCol() == col)
-                numGemsCleared++;
-
-        return numGemsCleared;
+    /**
+     * Order the gems in ascending row values, then column values
+     */
+    public TreeSet<Gem> getOrderedGems() {
+        TreeSet<Gem> gems = new TreeSet<>((gem, otherGem) -> {
+            if (gem.getRow() != otherGem.getRow())
+                return gem.getRow() - otherGem.getRow();
+            return gem.getCol() - otherGem.getCol();
+        });
+        gems.addAll(this.gems);
+        return gems;
     }
 }
